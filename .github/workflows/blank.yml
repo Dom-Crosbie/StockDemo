@@ -1,0 +1,108 @@
+name: copilot-cli-smartbear-mcp
+permissions:
+  contents: write
+on:
+  workflow_dispatch:
+    inputs:
+      ai-prompt:
+        description: 'Prompt to use with SmartBear MCP Server'
+        default: 'Using SmartBear Swagger AI-powered generation tool using MConneely organization, generate a RESTful weather API spec with JSON endpoints for current weather, forecasts, and historical data. Use API key auth and error handling (200, 400, 404).'
+        required: false
+        type: string
+jobs:
+  copilot-cli:
+    runs-on: ubuntu-latest
+
+    env:
+      # Copilot auth – PAT with Copilot access
+      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+
+      # SmartBear / Pact Broker / Swagger config
+      SWAGGER_API_KEY: "7b26e974-07c8-4e44-92ab-2505f6413076"
+
+      # Make tools behave non-interactively
+      CI: true
+      NO_COLOR: 1
+      TERM: dumb
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Debug that token is actually set
+        shell: bash
+        run: |
+          if [ -z "$COPILOT_GITHUB_TOKEN" ]; then
+            echo "❌ COPILOT_GITHUB_TOKEN is EMPTY inside the runner."
+            exit 1
+          fi
+          echo "✅ COPILOT_GITHUB_TOKEN is set (length ${#COPILOT_GITHUB_TOKEN})"
+      - name: Install GitHub Copilot CLI (0.0.358)
+        run: |
+          npm install -g @github/copilot@0.0.358
+      - name: Configure SmartBear MCP server (separate config file)
+        run: |
+          mkdir -p "$HOME/.copilot"
+      
+          cat > "$HOME/.copilot/mcp-smartbear.json" << 'EOF'
+          {
+            "mcpServers": {
+              "smartbear": {
+                "type": "local",
+                "command": "npx",
+                "args": ["-y", "@smartbear/mcp@latest"],
+                "tools": ["*"],
+                "env": {
+                  "PACT_BROKER_BASE_URL": "${PACT_BROKER_BASE_URL}",
+                  "PACT_BROKER_TOKEN": "${PACT_BROKER_TOKEN}",
+                  "SWAGGER_API_KEY": "${SWAGGER_API_KEY}"
+                }
+              }
+            }
+          }
+          EOF
+      
+          echo "=== $HOME/.copilot/mcp-smartbear.json ==="
+          cat "$HOME/.copilot/mcp-smartbear.json"
+
+      - name: Test-start SmartBear MCP manually
+        run: |
+          echo "Starting MCP manually..."
+          echo "URL=$PACT_BROKER_BASE_URL"
+          echo "PACT_BROKER_TOKEN length=${#PACT_BROKER_TOKEN}"
+          echo "SWAGGER_API_KEY length=${#SWAGGER_API_KEY}"
+          npx -y @smartbear/mcp@latest --help || echo "MCP server failed to start"
+      - name: Execute action using SmartBear MCP tools
+        shell: bash
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ env.COPILOT_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          SWAGGER_API_KEY: "7b26e974-07c8-4e44-92ab-2505f6413076"
+        run: |
+          # Add SmartBear config explicitly + allow tools
+          timeout --foreground --signal=TERM --kill-after=30s 600s \
+            copilot \
+              --additional-mcp-config @"$HOME/.copilot/mcp-smartbear.json" \
+              --log-level debug \
+              --log-dir ./copilot-logs \
+              -p "${{ inputs.ai-prompt }}" \
+              --allow-all-tools \
+              --allow-all-paths \
+              </dev/null || echo "copilot exited with code $?"
+          # Check that the generated OpenAPI file follows governance rules
+          timeout --foreground --signal=TERM --kill-after=30s 600s \
+            copilot \
+              --additional-mcp-config @"$HOME/.copilot/mcp-smartbear.json" \
+              --log-level debug \
+              --log-dir ./copilot-logs \
+              -p "in the previous copilot call, the OpenAPi file was generated in to https://app.swaggerhub.com. Check that it adheres to the Standardization rules in the Swagger Org. If there are any governance errors raised, fix the API" \
+              --allow-all-tools \
+              --allow-all-paths \
+              </dev/null || echo "copilot exited with code $?"
+              
+       
+          echo "=== Copilot logs (if any) ==="
+          ls -R ./copilot-logs || true
