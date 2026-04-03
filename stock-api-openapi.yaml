@@ -1,0 +1,138 @@
+openapi: 3.0.0
+info:
+  title: Stock Portfolio API
+  description: API for managing a stock portfolio with real-time price updates
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://localhost:5001
+    description: Development server
+  - url: https://api.example.com/v1
+    description: Production server
+
+paths:
+  /portfolio:
+    get:
+      summary: Get all stocks in the portfolio
+      description: Returns a list of all stocks in the portfolio with their current prices and changes
+      operationId: getPortfolio
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stock'
+  
+  /portfolio/{id}:
+    post:
+      summary: Update a stock's price
+      description: Updates the price of a specific stock by ID and calculates the price change
+      operationId: updateStockPrice
+      parameters:
+        - name: id
+          in: path
+          description: ID of the stock to update
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        description: New price for the stock
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceUpdate'
+      responses:
+        '200':
+          description: Stock updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+        '404':
+          description: Stock not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Stock:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 1
+        ticker:
+          type: string
+          example: "AAPL"
+        name:
+          type: string
+          example: "Apple Inc."
+        price:
+          type: number
+          format: decimal
+          example: 189.98
+        change:
+          type: number
+          format: decimal
+          description: Price change from the previous price
+          example: 1.22
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2025-11-18T12:30:45Z"
+      required:
+        - id
+        - name
+        - price
+        - change
+
+    PriceUpdate:
+      type: object
+      properties:
+        price:
+          type: number
+          format: decimal
+          description: New price for the stock
+          example: 195.50
+      required:
+        - price
+
+    Error:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "https://tools.ietf.org/html/rfc9110#section-15.5.5"
+        title:
+          type: string
+          example: "Not Found"
+        status:
+          type: integer
+          format: int32
+          example: 404
+        detail:
+          type: string
+          example: "Stock with ID 999 was not found"
+        instance:
+          type: string
+          example: "/portfolio/999"
+
+tags:
+  - name: Portfolio
+    description: Stock portfolio management
+  - name: Stocks
+    description: Stock information and updates
