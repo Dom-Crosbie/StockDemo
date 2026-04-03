@@ -1,7 +1,7 @@
 openapi: '3.0.0'
 info:
   title: Stock Portfolio API
-  description: API for managing a stock portfolio with real-time price updates and a minor change.
+  description: API for managing a stock portfolio with real-time price updates and a really minor change.
   version: 1.0.0
   contact:
     name: API Support
