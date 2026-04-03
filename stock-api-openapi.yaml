@@ -1,233 +1,225 @@
-openapi: 3.0.0
+openapi: '3.0.0'
 info:
   title: Stock Portfolio API
   description: API for managing a stock portfolio with real-time price updates
+  version: 1.0.0
   contact:
     name: API Support
-    url: https://support.example.com
     email: support@example.com
+    url: https://support.example.com
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.0.0
 servers:
-- url: https://virtserver.swaggerhub.com/domcrosbie-cc0/stock-portfolio-api/1.0.0
-  description: SwaggerHub API Auto Mocking
-- url: https://localhost:5212
-  description: Development server
-- url: https://api.prod-example.net/v1
-  description: Production server
-tags:
-- name: Portfolio
-  description: Stock portfolio management
-- name: Stocks
-  description: Stock information and updates
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/domcrosbie-cc0/stock-portfolio-api/1.0.0
+  - url: https://localhost:5212
+    description: Development server
+  - url: https://api.prod-example.net/v1
+    description: Production server
 paths:
   /portfolio:
     get:
       tags:
-      - Portfolio
+        - Portfolio
       summary: Get all stocks in the portfolio
-      description: Returns a list of all stocks in the portfolio with their current
-        prices and changes
+      description: Returns a list of all stocks in the portfolio with their current prices and changes
       operationId: getPortfolio
+      security:
+        - bearerAuth: []
       responses:
-        "200":
+        '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                maxItems: 1000
                 type: array
+                maxItems: 1000
                 items:
-                  $ref: "#/components/schemas/Stock"
-        "401":
+                  $ref: '#/components/schemas/Stock'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "429":
+                $ref: '#/components/schemas/Error'
+        '429':
           description: Too Many Requests
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-      security:
-      - bearerAuth: []
+                $ref: '#/components/schemas/Error'
   /portfolio/{id}:
     post:
       tags:
-      - Stocks
+        - Stocks
       summary: Update a stock's price
-      description: Updates the price of a specific stock by ID and calculates the
-        price change
+      description: Updates the price of a specific stock by ID and calculates the price change
       operationId: updateStockPrice
+      security:
+        - bearerAuth: []
       parameters:
-      - name: id
-        in: path
-        description: ID of the stock to update (UUID)
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
-          format: uuid
-      - name: if-match
-        in: header
-        description: Optional ETag to perform conditional update
-        required: false
-        style: simple
-        explode: false
-        schema:
-          maxLength: 128
-          type: string
+        - name: id
+          in: path
+          description: ID of the stock to update (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: if-match
+          in: header
+          description: Optional ETag to perform conditional update
+          required: false
+          schema:
+            type: string
+            maxLength: 128
       requestBody:
         description: New price for the stock
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PriceUpdate"
+              $ref: '#/components/schemas/PriceUpdate'
             examples:
               updateExample:
                 summary: Sample price update
                 value:
                   price: 195.5
-        required: true
       responses:
-        "200":
+        '200':
           description: Stock updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Stock"
-        "400":
+                $ref: '#/components/schemas/Stock'
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "401":
+                $ref: '#/components/schemas/Error'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "404":
+                $ref: '#/components/schemas/Error'
+        '404':
           description: Stock not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-      security:
-      - bearerAuth: []
+                $ref: '#/components/schemas/Error'
 components:
-  schemas:
-    Stock:
-      required:
-      - change
-      - id
-      - name
-      - price
-      type: object
-      properties:
-        id:
-          type: string
-          description: "Unique identifier for the stock (UUID, non-guessable)."
-          format: uuid
-          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        ticker:
-          maxLength: 10
-          type: string
-          description: Stock ticker symbol.
-          example: AAPL
-        name:
-          maxLength: 200
-          type: string
-          description: Full name of the company issuing the stock.
-          example: Apple Inc.
-        price:
-          type: number
-          description: Current price of the stock in USD.
-          format: decimal
-          example: 189.98
-        change:
-          type: number
-          description: Price change from the previous price (positive or negative).
-          format: decimal
-          example: 1.22
-        lastUpdated:
-          type: string
-          description: Timestamp when the price was last updated (UTC).
-          format: date-time
-          example: 2025-11-18T12:30:45Z
-      description: A stock held in the portfolio with current price and metadata.
-      example:
-        id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        ticker: AAPL
-        name: Apple Inc.
-        price: 189.98
-        change: 1.22
-        lastUpdated: 2025-11-18T12:30:45Z
-    PriceUpdate:
-      required:
-      - price
-      type: object
-      properties:
-        price:
-          type: number
-          description: New price for the stock in USD.
-          format: decimal
-          example: 195.5
-      description: Payload to update the stock's current price.
-      example:
-        price: 195.5
-    Error:
-      required:
-      - status
-      - title
-      - type
-      type: object
-      properties:
-        type:
-          maxLength: 200
-          type: string
-          description: A URI reference that identifies the problem type.
-          example: https://tools.ietf.org/html/rfc9110#section-15.5.5
-        title:
-          maxLength: 200
-          type: string
-          description: "Short, human-readable summary of the problem type."
-          example: Not Found
-        status:
-          type: integer
-          description: HTTP status code applicable to this problem.
-          format: int32
-          example: 404
-        detail:
-          maxLength: 1000
-          type: string
-          description: Human-readable explanation specific to this occurrence of the
-            problem.
-          example: Stock with ID 999 was not found
-        instance:
-          maxLength: 200
-          type: string
-          description: A URI reference that identifies the specific occurrence of
-            the problem.
-          example: /portfolio/999
-      description: Standard error response body.
-      example:
-        type: https://tools.ietf.org/html/rfc9110#section-15.5.5
-        title: Not Found
-        status: 404
-        detail: Stock with ID 999 was not found
-        instance: /portfolio/999
   securitySchemes:
     bearerAuth:
       type: http
+      scheme: bearer
+      bearerFormat: JWT
       description: |
         Authentication using JWT Bearer tokens. Tokens MUST follow RFC7519.
         This scheme supports RFC8725 recommendations for token usage.
-      scheme: bearer
-      bearerFormat: JWT
+  schemas:
+    Stock:
+      type: object
+      description: A stock held in the portfolio with current price and metadata.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the stock (UUID, non-guessable).
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        ticker:
+          type: string
+          description: Stock ticker symbol.
+          maxLength: 10
+          example: "AAPL"
+        name:
+          type: string
+          description: Full name of the company issuing the stock.
+          maxLength: 200
+          example: "Apple Inc."
+        price:
+          type: number
+          format: decimal
+          description: Current price of the stock in USD.
+          example: 189.98
+        change:
+          type: number
+          format: decimal
+          description: Price change from the previous price (positive or negative).
+          example: 1.22
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp when the price was last updated (UTC).
+          example: "2025-11-18T12:30:45Z"
+      required:
+        - id
+        - name
+        - price
+        - change
+      example:
+        id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        ticker: "AAPL"
+        name: "Apple Inc."
+        price: 189.98
+        change: 1.22
+        lastUpdated: "2025-11-18T12:30:45Z"
+    PriceUpdate:
+      type: object
+      description: Payload to update the stock's current price.
+      properties:
+        price:
+          type: number
+          format: decimal
+          description: New price for the stock in USD.
+          example: 195.50
+      required:
+        - price
+      example:
+        price: 195.5
+    Error:
+      type: object
+      description: Standard error response body.
+      properties:
+        type:
+          type: string
+          description: A URI reference that identifies the problem type.
+          maxLength: 200
+          example: "https://tools.ietf.org/html/rfc9110#section-15.5.5"
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+          maxLength: 200
+          example: "Not Found"
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code applicable to this problem.
+          example: 404
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence of the problem.
+          maxLength: 1000
+          example: "Stock with ID 999 was not found"
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence of the problem.
+          maxLength: 200
+          example: "/portfolio/999"
+      required:
+        - type
+        - title
+        - status
+      example:
+        type: "https://tools.ietf.org/html/rfc9110#section-15.5.5"
+        title: "Not Found"
+        status: 404
+        detail: "Stock with ID 999 was not found"
+        instance: "/portfolio/999"
+tags:
+  - name: Portfolio
+    description: Stock portfolio management
+  - name: Stocks
+    description: Stock information and updates
