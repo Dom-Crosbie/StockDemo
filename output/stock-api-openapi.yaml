@@ -1,0 +1,301 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "title" : "Stock Portfolio API",
+    "description" : "API for managing a stock portfolio with real-time price updates",
+    "contact" : {
+      "name" : "API Support",
+      "url" : "https://support.example.com",
+      "email" : "support@example.com"
+    },
+    "license" : {
+      "name" : "MIT",
+      "url" : "https://opensource.org/licenses/MIT"
+    },
+    "version" : "1.0.0"
+  },
+  "servers" : [ {
+    "url" : "https://virtserver.swaggerhub.com/domcrosbie-cc0/stock-portfolio-api/1.0.0",
+    "description" : "SwaggerHub API Auto Mocking"
+  }, {
+    "url" : "https://localhost:5212",
+    "description" : "Development server"
+  }, {
+    "url" : "https://api.prod-example.net/v1",
+    "description" : "Production server"
+  } ],
+  "tags" : [ {
+    "name" : "Portfolio",
+    "description" : "Stock portfolio management"
+  }, {
+    "name" : "Stocks",
+    "description" : "Stock information and updates"
+  } ],
+  "paths" : {
+    "/portfolio" : {
+      "get" : {
+        "tags" : [ "Portfolio" ],
+        "summary" : "Get all stocks in the portfolio",
+        "description" : "Returns a list of all stocks in the portfolio with their current prices and changes",
+        "operationId" : "getPortfolio",
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "maxItems" : 1000,
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Stock"
+                  }
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    },
+    "/portfolio/{id}" : {
+      "post" : {
+        "tags" : [ "Stocks" ],
+        "summary" : "Update a stock's price",
+        "description" : "Updates the price of a specific stock by ID and calculates the price change",
+        "operationId" : "updateStockPrice",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "ID of the stock to update (UUID)",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "if-match",
+          "in" : "header",
+          "description" : "Optional ETag to perform conditional update",
+          "required" : false,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "maxLength" : 128,
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "New price for the stock",
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PriceUpdate"
+              },
+              "examples" : {
+                "updateExample" : {
+                  "summary" : "Sample price update",
+                  "value" : {
+                    "price" : 195.5
+                  }
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Stock updated successfully",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Stock"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Unauthorized",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Stock not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "bearerAuth" : [ ]
+        } ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "Stock" : {
+        "required" : [ "change", "id", "name", "price" ],
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "description" : "Unique identifier for the stock (UUID, non-guessable).",
+            "format" : "uuid",
+            "example" : "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "ticker" : {
+            "maxLength" : 10,
+            "type" : "string",
+            "description" : "Stock ticker symbol.",
+            "example" : "AAPL"
+          },
+          "name" : {
+            "maxLength" : 200,
+            "type" : "string",
+            "description" : "Full name of the company issuing the stock.",
+            "example" : "Apple Inc."
+          },
+          "price" : {
+            "type" : "number",
+            "description" : "Current price of the stock in USD.",
+            "format" : "decimal",
+            "example" : 189.98
+          },
+          "change" : {
+            "type" : "number",
+            "description" : "Price change from the previous price (positive or negative).",
+            "format" : "decimal",
+            "example" : 1.22
+          },
+          "lastUpdated" : {
+            "type" : "string",
+            "description" : "Timestamp when the price was last updated (UTC).",
+            "format" : "date-time",
+            "example" : "2025-11-18T12:30:45Z"
+          }
+        },
+        "description" : "A stock held in the portfolio with current price and metadata.",
+        "example" : {
+          "id" : "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "ticker" : "AAPL",
+          "name" : "Apple Inc.",
+          "price" : 189.98,
+          "change" : 1.22,
+          "lastUpdated" : "2025-11-18T12:30:45Z"
+        }
+      },
+      "PriceUpdate" : {
+        "required" : [ "price" ],
+        "type" : "object",
+        "properties" : {
+          "price" : {
+            "type" : "number",
+            "description" : "New price for the stock in USD.",
+            "format" : "decimal",
+            "example" : 195.5
+          }
+        },
+        "description" : "Payload to update the stock's current price.",
+        "example" : {
+          "price" : 195.5
+        }
+      },
+      "Error" : {
+        "required" : [ "status", "title", "type" ],
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "maxLength" : 200,
+            "type" : "string",
+            "description" : "A URI reference that identifies the problem type.",
+            "example" : "https://tools.ietf.org/html/rfc9110#section-15.5.5"
+          },
+          "title" : {
+            "maxLength" : 200,
+            "type" : "string",
+            "description" : "Short, human-readable summary of the problem type.",
+            "example" : "Not Found"
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "HTTP status code applicable to this problem.",
+            "format" : "int32",
+            "example" : 404
+          },
+          "detail" : {
+            "maxLength" : 1000,
+            "type" : "string",
+            "description" : "Human-readable explanation specific to this occurrence of the problem.",
+            "example" : "Stock with ID 999 was not found"
+          },
+          "instance" : {
+            "maxLength" : 200,
+            "type" : "string",
+            "description" : "A URI reference that identifies the specific occurrence of the problem.",
+            "example" : "/portfolio/999"
+          }
+        },
+        "description" : "Standard error response body.",
+        "example" : {
+          "type" : "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+          "title" : "Not Found",
+          "status" : 404,
+          "detail" : "Stock with ID 999 was not found",
+          "instance" : "/portfolio/999"
+        }
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "type" : "http",
+        "description" : "Authentication using JWT Bearer tokens. Tokens MUST follow RFC7519.\nThis scheme supports RFC8725 recommendations for token usage.\n",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
