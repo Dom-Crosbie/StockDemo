@@ -10,7 +10,7 @@ on:
     inputs:
       ai-prompt:
         description: 'Prompt to use with SmartBear MCP Server'
-        default: 'Using SmartBear Swagger AI-powered generation tool using MConneely organization, generate a RESTful weather API spec with JSON endpoints for current weather, forecasts, and historical data. Use API key auth and error handling (200, 400, 404).'
+        default: 'Using SmartBear Swagger AI-powered generation tool using domcrosbie-cc0 organization, update the existing Stock Portfolio API with a minor change and publish a new patch version.'
         required: false
         type: string
 
@@ -20,7 +20,7 @@ jobs:
 
     env:
       COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-      SWAGGER_API_KEY: "7b26e974-07c8-4e44-92ab-2505f6413076"
+      SWAGGER_API_KEY: ${{ secrets.SWAGGER_API_KEY }}
       CI: true
       NO_COLOR: 1
       TERM: dumb
@@ -43,15 +43,15 @@ jobs:
           fi
           echo "✅ COPILOT_GITHUB_TOKEN is set (length ${#COPILOT_GITHUB_TOKEN})"
 
-      - name: Bump minor version
+      - name: Bump patch version
         id: version
         run: |
           CURRENT=$(cat .swagger-version 2>/dev/null || echo "1.0.0")
           MAJOR=$(echo $CURRENT | cut -d. -f1)
           MINOR=$(echo $CURRENT | cut -d. -f2)
           PATCH=$(echo $CURRENT | cut -d. -f3)
-          NEW_MINOR=$((MINOR + 1))
-          NEW_VERSION="$MAJOR.$NEW_MINOR.$PATCH"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
           echo "$NEW_VERSION" > .swagger-version
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "✅ Bumped $CURRENT → $NEW_VERSION"
@@ -97,24 +97,24 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           SWAGGER_API_KEY: ${{ secrets.SWAGGER_API_KEY }}
         run: |
-          # Generate or update the API spec at the new version
+          # Fetch the existing Stock Portfolio API and publish a new patch version with a minor change
           timeout --foreground --signal=TERM --kill-after=30s 600s \
             copilot \
               --additional-mcp-config @"$HOME/.copilot/mcp-smartbear.json" \
               --log-level debug \
               --log-dir ./copilot-logs \
-              -p "Using SmartBear Swagger AI-powered generation tool using MConneely organization, generate or update a RESTful weather API spec at version ${{ steps.version.outputs.version }} with JSON endpoints for current weather, forecasts, and historical data. Use API key auth and error handling (200, 400, 404). Set the OpenAPI info.version field to ${{ steps.version.outputs.version }}." \
+              -p "Using the SmartBear SwaggerHub MCP tool for the domcrosbie-cc0 organization, fetch the latest version of the Stock Portfolio API. Make a minor backwards-compatible change to the API (such as adding a new optional field or endpoint). Publish it as a new version ${{ steps.version.outputs.version }} and set the OpenAPI info.version field to ${{ steps.version.outputs.version }}." \
               --allow-all-tools \
               --allow-all-paths \
               </dev/null || echo "copilot exited with code $?"
 
-          # Validate the spec against SwaggerHub governance rules and fix any issues
+          # Validate the new version against SwaggerHub governance and standardisation rules
           timeout --foreground --signal=TERM --kill-after=30s 600s \
             copilot \
               --additional-mcp-config @"$HOME/.copilot/mcp-smartbear.json" \
               --log-level debug \
               --log-dir ./copilot-logs \
-              -p "The OpenAPI spec version ${{ steps.version.outputs.version }} was just published to https://app.swaggerhub.com. Check that it adheres to the Standardization rules in the SwaggerHub MConneely org. If there are any governance errors raised, fix the API." \
+              -p "The Stock Portfolio API version ${{ steps.version.outputs.version }} was just published to SwaggerHub under the domcrosbie-cc0 organization. Retrieve the standardisation and governance rules for that org and validate the API against them. If any governance errors are raised, fix the API and republish." \
               --allow-all-tools \
               --allow-all-paths \
               </dev/null || echo "copilot exited with code $?"
@@ -127,5 +127,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .swagger-version
-          git commit -m "chore: bump swagger version to ${{ steps.version.outputs.version }} [skip ci]"
+          git commit -m "chore: bump Stock Portfolio API to ${{ steps.version.outputs.version }} [skip ci]"
           git push
