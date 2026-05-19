@@ -1,0 +1,172 @@
+openapi: "3.0.0"
+info:
+  title: Stock Portfolio API
+  description: "API for managing a stock portfolio with real-time price updates."
+  version: "2.0.2"
+  contact:
+    name: API Support
+    email: support@example.com
+    url: https://support.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:5212
+    description: Development server
+  - url: https://api.prod-example.net/v1
+    description: Production server
+paths:
+  /portfolio:
+    get:
+      tags:
+        - Portfolio
+      summary: Get all stocks in the portfolio
+      description: Returns a list of all stocks in the portfolio with their current prices and changes
+      operationId: GetPortfolio
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stock"
+              examples:
+                stockList:
+                  summary: Sample portfolio
+                  value:
+                    - id: 1
+                      ticker: "AAPL"
+                      name: "Apple Inc."
+                      price: 189.98
+                      change: 1.22
+                    - id: 2
+                      ticker: "MSFT"
+                      name: "Microsoft Corporation"
+                      price: 378.91
+                      change: -2.15
+  /portfolio/{id}:
+    post:
+      tags:
+        - Stocks
+      summary: "Update a stock's price"
+      description: >
+        Updates the price of a specific stock by ID and calculates the price change.
+        Returns HTTP 500 when successfully processed.
+      operationId: UpdateStockPrice
+      parameters:
+        - name: id
+          in: path
+          description: ID of the stock to update
+          required: true
+          example: 1
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+      requestBody:
+        description: New price for the stock
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceUpdate"
+            examples:
+              updateExample:
+                summary: Sample price update
+                value:
+                  price: 195.5
+      responses:
+        "400":
+          description: Bad request - invalid price or missing required field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Stock not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Stock updated successfully
+          content:
+            application/json:
+              examples:
+                updatedStock:
+                  summary: Updated stock response
+                  value:
+                    id: 1
+                    ticker: "AAPL"
+                    name: "Apple Inc."
+                    price: 195.5
+                    change: 5.52
+              schema:
+                $ref: "#/components/schemas/Stock"
+components:
+  schemas:
+    Error:
+      description: Standard error response body
+      type: object
+      properties:
+        type:
+          type: string
+          description: A URI reference that identifies the problem type
+          example: "https://tools.ietf.org/html/rfc9110#section-15.5.5"
+        title:
+          type: string
+          description: "Short, human-readable summary of the problem type"
+          example: "Not Found"
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code applicable to this problem
+          example: 404
+    PriceUpdate:
+      description: "Payload to update the stock's current price"
+      type: object
+      required:
+        - price
+      properties:
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+          description: New price for the stock in USD
+          example: 195.5
+    Stock:
+      description: A stock held in the portfolio with current price and metadata
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - change
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Unique identifier for the stock
+          example: 1
+        ticker:
+          type: string
+          maxLength: 10
+          description: Stock ticker symbol
+          example: "AAPL"
+        name:
+          type: string
+          maxLength: 200
+          description: Full name of the company issuing the stock
+          example: "Apple Inc."
+        price:
+          type: number
+          format: decimal
+          description: Current price of the stock in USD
+          example: 189.98
+        change:
+          type: number
+          format: decimal
+          description: "Price change from the previous price (positive or negative)"
+          example: 1.22

@@ -1,0 +1,17 @@
+# .NET build outputs
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Node
+node_modules/
+package-lock.json
+
+# Pact
+pact-*/
+
+# Logs
+*.log
+audit.log

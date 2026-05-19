@@ -1,0 +1,110 @@
+# yaml-language-server: $schema=https://download.pactflow.io/drift/schemas/drift.testcases.v1.schema.json
+drift-testcase-file: v1
+title: "Stock Portfolio API v2.0.2 — Drift Detection Demo"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEMO ACT 2: DRIFT DETECTED — spec and implementation are out of sync
+#
+# In v2.0.2 of the spec, a mistake was introduced:
+#   POST /portfolio/{id} now documents HTTP 500 as the SUCCESS response.
+#   The actual .NET API still returns HTTP 200.
+#
+# These tests run against the SAME live API at http://localhost:5212
+# but validate against the v2.0.2 spec.
+#
+# Expected results:
+#   ✅ getPortfolio_200_Passes         — GET /portfolio still documented as 200
+#   ❌ updateStock_DriftDetected        — API returns 200, spec only documents 500
+#   ❌ updateStock_SpecPerspective       — Expecting 500 (per spec), API returns 200
+#   ✅ updateStock_NotFound_Passes       — 404 still documented correctly
+#
+# KEY INSIGHT: A mock-based test against a virtual service would return a
+# hardcoded 200 response and PASS for all scenarios — it has no knowledge
+# of what the spec says. Drift validates your real API against your real spec.
+# ─────────────────────────────────────────────────────────────────────────────
+
+sources:
+  - name: stock-api-v2
+    path: ../2.0.2.yaml
+
+plugins:
+  - name: oas
+    version: 0.0.9
+  - name: json
+    version: 0.0.9
+
+operations:
+
+  # ✅ PASSES — GET /portfolio is still correctly documented as 200 in v2.0.2
+  getPortfolio_200_Passes:
+    target: stock-api-v2:GetPortfolio
+    description: "GET /portfolio → 200. Spec still correct here. This test passes."
+    tags: [drift-demo, read-only, smoke]
+    expected:
+      response:
+        statusCode: 200
+
+  # ❌ DRIFT DETECTED
+  # The developer writes a perfectly natural test: "I expect HTTP 200".
+  # The API does return 200. But v2.0.2 spec only documents 400, 404, and 500
+  # for this operation — 200 is not there.
+  # The OAS plugin flags: undocumented response code 200.
+  #
+  # A mock (virtual service) test would PASS here — it returns 200 regardless.
+  # Drift catches what mocks cannot: your spec is out of sync with your API.
+  updateStock_DriftDetected:
+    target: stock-api-v2:UpdateStockPrice
+    description: >
+      [DRIFT DETECTED] Developer expects HTTP 200 (the API does return 200).
+      But v2.0.2 spec accidentally documents success as HTTP 500 — 200 is
+      undocumented. The OAS plugin fails this test. A mock test would pass here
+      because the mock returns 200 regardless of what the spec says.
+    tags: [drift-demo, write, drift-detected]
+    parameters:
+      path:
+        id: 1
+      request:
+        body:
+          price: 195.50
+    expected:
+      response:
+        statusCode: 200
+
+  # ❌ DRIFT DETECTED (spec perspective)
+  # If you write the test to match exactly what the spec documents (HTTP 500),
+  # the test fails because the API returns 200, not 500.
+  # Either the spec is wrong OR the implementation is wrong.
+  # Drift surfaces this mismatch immediately — before it reaches production.
+  updateStock_SpecPerspective:
+    target: stock-api-v2:UpdateStockPrice
+    description: >
+      [DRIFT DETECTED] The v2.0.2 spec says 500 means success. If you trust
+      the spec and test for 500, the API returns 200 and this test fails.
+      There is a clear mismatch between the contract (spec) and the code.
+    tags: [drift-demo, write, drift-detected]
+    parameters:
+      path:
+        id: 1
+      request:
+        body:
+          price: 220.00
+    expected:
+      response:
+        statusCode: 500
+
+  # ✅ PASSES — 404 is still correctly documented in v2.0.2
+  updateStock_NotFound_Passes:
+    target: stock-api-v2:UpdateStockPrice
+    description: "POST /portfolio/9999 → 404. Still documented correctly. This test passes."
+    tags: [drift-demo, error, not-found]
+    parameters:
+      path:
+        id: 9999
+      request:
+        body:
+          price: 100.00
+      ignore:
+        schema: true
+    expected:
+      response:
+        statusCode: 404

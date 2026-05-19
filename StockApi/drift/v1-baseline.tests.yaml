@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://download.pactflow.io/drift/schemas/drift.testcases.v1.schema.json
+drift-testcase-file: v1
+title: "Stock Portfolio API v2.0.1 — Baseline (All Pass)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEMO ACT 1: BASELINE — everything works, spec and implementation are aligned
+#
+# These tests run against the LIVE .NET API at http://localhost:5212 and
+# validate responses against the v2.0.1 OpenAPI spec.
+#
+# Expected result: ALL PASS ✅
+#   - GET /portfolio          → 200 (spec says 200, API returns 200)
+#   - POST /portfolio/1       → 200 (spec says 200, API returns 200)
+#   - POST /portfolio/2       → 200 (spec says 200, API returns 200)
+#   - POST /portfolio/9999    → 404 (spec says 404, API returns 404)
+# ─────────────────────────────────────────────────────────────────────────────
+
+sources:
+  - name: stock-api-v1
+    path: ../2.0.1.yaml
+
+plugins:
+  - name: oas
+    version: 0.0.9
+  - name: json
+    version: 0.0.9
+
+operations:
+
+  getPortfolio_Success:
+    target: stock-api-v1:GetPortfolio
+    description: "GET /portfolio returns 200 with the full list of portfolio stocks"
+    tags: [baseline, read-only, smoke]
+    expected:
+      response:
+        statusCode: 200
+
+  updateStock_Apple_Success:
+    target: stock-api-v1:UpdateStockPrice
+    description: "POST /portfolio/1 — update Apple (AAPL) price to $195.50"
+    tags: [baseline, write, smoke]
+    parameters:
+      path:
+        id: 1
+      request:
+        body:
+          price: 195.50
+    expected:
+      response:
+        statusCode: 200
+
+  updateStock_Microsoft_Success:
+    target: stock-api-v1:UpdateStockPrice
+    description: "POST /portfolio/2 — update Microsoft (MSFT) price to $400.00"
+    tags: [baseline, write]
+    parameters:
+      path:
+        id: 2
+      request:
+        body:
+          price: 400.00
+    expected:
+      response:
+        statusCode: 200
+
+  updateStock_NotFound:
+    target: stock-api-v1:UpdateStockPrice
+    description: "POST /portfolio/9999 — non-existent stock returns 404"
+    tags: [baseline, error, not-found]
+    parameters:
+      path:
+        id: 9999
+      request:
+        body:
+          price: 100.00
+      ignore:
+        schema: true
+    expected:
+      response:
+        statusCode: 404

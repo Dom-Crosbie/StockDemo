@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "test:baseline": "drift verify --test-files drift/v1-baseline.tests.yaml --server-url http://localhost:5212",
+    "test:drift": "drift verify --test-files drift/v2-drift-detected.tests.yaml --server-url http://localhost:5212",
+    "demo": "pwsh -File scripts/run-demo.ps1"
+  },
+  "dependencies": {
+    "@smartbear/mcp": "^0.12.1"
+  },
+  "devDependencies": {
+    "@pactflow/drift": "latest"
+  }
+}
