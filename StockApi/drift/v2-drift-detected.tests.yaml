@@ -45,42 +45,19 @@ operations:
         statusCode: 200
 
   # ❌ DRIFT DETECTED
-  # The developer writes a perfectly natural test: "I expect HTTP 200".
-  # The API does return 200. But v2.0.2 spec only documents 400, 404, and 500
-  # for this operation — 200 is not there.
-  # The OAS plugin flags: undocumented response code 200.
+  # The v2.0.2 spec says HTTP 500 is the success code for this operation.
+  # The .NET API returns HTTP 200. They are out of sync.
+  # This test trusts the spec and expects 500 — the API returns 200 and the
+  # test fails. Drift has caught the mismatch between contract and code.
   #
-  # A mock (virtual service) test would PASS here — it returns 200 regardless.
-  # Drift catches what mocks cannot: your spec is out of sync with your API.
-  updateStock_DriftDetected:
-    target: stock-api-v2:UpdateStockPrice
-    description: >
-      [DRIFT DETECTED] Developer expects HTTP 200 (the API does return 200).
-      But v2.0.2 spec accidentally documents success as HTTP 500 — 200 is
-      undocumented. The OAS plugin fails this test. A mock test would pass here
-      because the mock returns 200 regardless of what the spec says.
-    tags: [drift-demo, write, drift-detected]
-    parameters:
-      path:
-        id: 1
-      request:
-        body:
-          price: 195.50
-    expected:
-      response:
-        statusCode: 200
-
-  # ❌ DRIFT DETECTED (spec perspective)
-  # If you write the test to match exactly what the spec documents (HTTP 500),
-  # the test fails because the API returns 200, not 500.
-  # Either the spec is wrong OR the implementation is wrong.
-  # Drift surfaces this mismatch immediately — before it reaches production.
+  # Run the same scenario against the mock (VirtService) and it returns a
+  # hardcoded 200. The mock test passes. Drift fails. Drift is right.
   updateStock_SpecPerspective:
     target: stock-api-v2:UpdateStockPrice
     description: >
-      [DRIFT DETECTED] The v2.0.2 spec says 500 means success. If you trust
-      the spec and test for 500, the API returns 200 and this test fails.
-      There is a clear mismatch between the contract (spec) and the code.
+      [DRIFT DETECTED] v2.0.2 spec documents HTTP 500 as success.
+      API returns HTTP 200. Expected 500, got 200 — spec and code are out of sync.
+      A mock test passes here silently. Drift fails and tells you exactly why.
     tags: [drift-demo, write, drift-detected]
     parameters:
       path:
@@ -103,8 +80,8 @@ operations:
       request:
         body:
           price: 100.00
-      ignore:
-        schema: true
+    ignore:
+      schema: true
     expected:
       response:
         statusCode: 404

@@ -73,8 +73,8 @@ operations:
       request:
         body:
           price: 100.00
-      ignore:
-        schema: true
+    ignore:
+      schema: true
     expected:
       response:
         statusCode: 404

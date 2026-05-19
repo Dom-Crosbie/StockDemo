@@ -145,8 +145,9 @@ Write-Explain @"
   The .NET API hasn't changed — it still returns HTTP 200.
   The spec has drifted away from the implementation.
 
-  We now run the SAME tests against the SAME live API,
-  but pointed at the v2.0.2 spec.
+  The test is written from the spec's perspective: if the spec says 500
+  is success, a test should expect 500. The API returns 200. That mismatch
+  is exactly what Drift surfaces.
 
   Watch what happens...
 "@
@@ -164,6 +165,7 @@ $driftExit = $LASTEXITCODE
 Write-Host ""
 if ($driftExit -ne 0) {
     Write-Host "  ❌  DRIFT DETECTED — spec and implementation are out of sync." -ForegroundColor Red
+    Write-Host "      updateStock_SpecPerspective: Expected 500 (per spec), API returned 200." -ForegroundColor Red
 } else {
     Write-Host "  ✅  All drift tests passed." -ForegroundColor Green
 }

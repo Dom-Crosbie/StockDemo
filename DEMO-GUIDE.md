@@ -63,7 +63,7 @@ npm run test:baseline
 ✓ getPortfolio_Success
 ✓ updateStock_Apple_Success
 ✓ updateStock_Microsoft_Success
-✓ updateStock_NotFound
+✓ updateStock_NotFound          ← 404, real API, real empty body — schema ignored as expected
 ```
 
 **Talk track:** *"Our API and v2.0.1 spec are perfectly aligned. Every response the API returns is documented in the spec and matches the schema."*
@@ -87,16 +87,15 @@ cd StockApi
 npm run test:drift
 ```
 
-**Expected result — 2 FAILURES ❌**
+**Expected result — 1 FAILURE ❌**
 
 ```
-✓ getPortfolio_200_Passes
-✗ updateStock_DriftDetected     ← 200 is not a documented response in v2.0.2
-✗ updateStock_SpecPerspective    ← Expected 500 (per spec), got 200
-✓ updateStock_NotFound_Passes
+✓ getPortfolio_200_Passes        ← GET /portfolio still documented as 200 ✅
+✗ updateStock_SpecPerspective    ← Expected 500 (per spec), API returns 200
+✓ updateStock_NotFound_Passes    ← 404 still correct in v2.0.2 ✅
 ```
 
-**Talk track:** *"Same live API. Same code. Same tests — just pointed at the v2.0.2 spec. Drift immediately surfaces the mismatch. The OAS plugin validated the actual HTTP 200 response against the spec and found that 200 is not a documented response code for this operation. The spec says 500 is success. Someone made a mistake — either in the spec or in the code — and Drift found it before it reached a consumer."*
+**Talk track:** *"Same live API. Same code. Just pointed at the v2.0.2 spec. Drift immediately surfaces the mismatch — the spec says HTTP 500 is the success code, but the API returns 200. Someone made a mistake somewhere. Either the spec is wrong or the code is wrong. Drift found it before it reached a consumer."*
 
 ---
 
@@ -180,8 +179,8 @@ StockApi/
 ├── 2.0.1.yaml                         ← v1 spec (baseline — all pass)
 ├── 2.0.2.yaml                         ← v2 spec (with deliberate 500 drift)
 ├── drift/
-│   ├── v1-baseline.tests.yaml         ← Drift tests against v2.0.1 (all pass)
-│   └── v2-drift-detected.tests.yaml   ← Drift tests against v2.0.2 (drift caught)
+│   ├── v1-baseline.tests.yaml         ← Drift tests against v2.0.1 (all 4 pass)
+│   └── v2-drift-detected.tests.yaml   ← Drift tests against v2.0.2 (1 failure: 500 vs 200)
 ├── scripts/
 │   └── run-demo.ps1                   ← Automated demo runner
 └── package.json                       ← npm scripts for running tests
